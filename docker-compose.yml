@@ -1,0 +1,55 @@
+services:
+  axiom-web:
+    image: nginx:1.27-alpine
+    container_name: axiom-web
+    restart: unless-stopped
+    volumes:
+      - ./axiom_web_interface.html:/usr/share/nginx/html/index.html:ro
+    ports:
+      - "${AXIOM_WEB_PORT:-8081}:80"
+    depends_on:
+      - axiom-db
+
+  axiom-db:
+    image: postgres:16-alpine
+    container_name: axiom-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${AXIOM_DB_USER:-axiom}
+      POSTGRES_PASSWORD: ${AXIOM_DB_PASSWORD}
+      POSTGRES_DB: ${AXIOM_DB_NAME:-axiom}
+    volumes:
+      - axiom-db-data:/var/lib/postgresql/data
+    ports:
+      - "${AXIOM_DB_PORT:-5432}:5432"
+
+  axiom-proxy:
+    image: nginx:1.27-alpine
+    container_name: axiom-proxy
+    restart: unless-stopped
+    depends_on:
+      - axiom-web
+    command:
+      - /bin/sh
+      - -c
+      - |
+        cat <<'EOF' > /etc/nginx/conf.d/default.conf
+        server {
+          listen 80;
+          server_name _;
+
+          location / {
+            proxy_pass http://axiom-web:80;
+            proxy_set_header Host $$host;
+            proxy_set_header X-Real-IP $$remote_addr;
+            proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $$scheme;
+          }
+        }
+        EOF
+        && nginx -g 'daemon off;'
+    ports:
+      - "${AXIOM_PROXY_PORT:-8080}:80"
+
+volumes:
+  axiom-db-data:
