@@ -33,12 +33,13 @@ AXIOM_LOG_LEVEL=info
 POSTGRES_USER=axiom
 POSTGRES_PASSWORD=$dbPassword
 POSTGRES_DB=axiom
-DATABASE_URL=postgresql://axiom-db:5432/axiom?user=axiom&sslmode=disable
+DATABASE_URL=__GENERATED_DATABASE_URL__
 AXIOM_INTERNAL_URL=http://axiom-web:8080
 DOMAIN=localhost
 SSL_CERT_PATH=/etc/nginx/ssl/cert.pem
 SSL_KEY_PATH=/etc/nginx/ssl/key.pem
 "@ | Set-Content -Encoding UTF8 $EnvFile
+  (Get-Content $EnvFile) -replace '^DATABASE_URL=.*$', ('DATABASE_URL=postgresql://axiom:' + $dbPassword + '@axiom-db:5432/axiom?sslmode=disable') | Set-Content -Encoding UTF8 $EnvFile
 
   Write-Host 'Created .env with generated credentials.'
 }

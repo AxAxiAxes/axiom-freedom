@@ -18,7 +18,8 @@ jobs:
         run: |
           cp .env.example .env
           sed -i 's/replace-with-strong-password/test-password-123/' .env
-          sed -i 's#^DATABASE_URL=.*#DATABASE_URL=postgresql://axiom-db:5432/axiom?user=axiom\\&sslmode=disable#' .env
+          DB_URL_PREFIX='postgresql://axiom:'
+          sed -i "s#^DATABASE_URL=.*#DATABASE_URL=${DB_URL_PREFIX}test-password-123@axiom-db:5432/axiom?sslmode=disable#" .env
 
       - name: Create TLS certs
         run: |

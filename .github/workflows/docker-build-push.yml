@@ -42,11 +42,20 @@ jobs:
           echo "image=${REGISTRY,,}/${IMAGE_NAMESPACE,,}-${{ matrix.service }}" >> "$GITHUB_OUTPUT"
           echo "sha_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
+      - name: Select Dockerfile
+        id: dockerfile
+        run: |
+          if [ "${{ matrix.service }}" = "web" ]; then
+            echo "path=Dockerfile" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=Dockerfile.proxy" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ matrix.service == 'web' && 'Dockerfile' || 'Dockerfile.proxy' }}
+          file: ${{ steps.dockerfile.outputs.path }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
