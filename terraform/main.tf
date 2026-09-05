@@ -48,6 +48,10 @@ variable "name_prefix" {
   type        = string
   description = "Resource naming prefix (must be globally unique for storage/SWA)."
   default     = "axiomfreedom"
+  validation {
+    condition     = can(regex("^[A-Za-z0-9-]+$", var.name_prefix)) && can(regex("[A-Za-z0-9]", var.name_prefix))
+    error_message = "name_prefix must include letters/numbers and may also include hyphens."
+  }
 }
 
 variable "create_dns_zone" {
@@ -62,8 +66,15 @@ variable "custom_domain" {
   default     = ""
 }
 
+variable "enable_custom_domain_binding" {
+  type        = bool
+  description = "Enable SWA custom-domain binding after DNS propagation is confirmed."
+  default     = false
+}
+
 locals {
   trimmed_domain = trimspace(var.custom_domain)
+  normalized_prefix = trim(regexreplace(lower(var.name_prefix), "[^a-z0-9-]", "-"), "-")
 }
 
 resource "azurerm_resource_group" "axiom" {
@@ -94,6 +105,7 @@ resource "azurerm_storage_account" "logs" {
   account_tier             = "Standard"
   account_replication_type = "LRS"
   min_tls_version          = "TLS1_2"
+  allow_nested_items_to_be_public = false
 }
 
 resource "azurerm_storage_container" "session_logs" {
@@ -103,7 +115,7 @@ resource "azurerm_storage_container" "session_logs" {
 }
 
 resource "azurerm_static_web_app" "axiom" {
-  name                = "${var.name_prefix}-swa"
+  name                = "${substr(local.normalized_prefix, 0, 52)}-swa"
   resource_group_name = azurerm_resource_group.axiom.name
   location            = azurerm_resource_group.axiom.location
   sku_tier            = "Standard"
@@ -171,7 +183,7 @@ resource "azurerm_dns_cname_record" "chat" {
 }
 
 resource "azurerm_static_web_app_custom_domain" "www" {
-  count             = local.trimmed_domain != "" ? 1 : 0
+  count             = var.create_dns_zone && var.enable_custom_domain_binding && local.trimmed_domain != "" ? 1 : 0
   static_web_app_id = azurerm_static_web_app.axiom.id
   domain_name       = "www.${local.trimmed_domain}"
   validation_type   = "cname-delegation"
@@ -185,9 +197,8 @@ output "static_web_default_hostname" {
   value = azurerm_static_web_app.axiom.default_host_name
 }
 
-output "static_web_app_deployment_token" {
-  value     = azurerm_static_web_app.axiom.api_key
-  sensitive = true
+output "static_web_app_name" {
+  value = azurerm_static_web_app.axiom.name
 }
 
 output "storage_account_name" {

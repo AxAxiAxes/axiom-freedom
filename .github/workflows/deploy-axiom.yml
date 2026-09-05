@@ -7,7 +7,6 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
   contents: read
 
 env:
@@ -17,16 +16,28 @@ env:
 jobs:
   provision-infrastructure:
     runs-on: ubuntu-latest
+    env:
+      TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+      TF_VAR_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+      TF_VAR_client_secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+      TF_VAR_custom_domain: ${{ secrets.AXIOM_DOMAIN }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Azure login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Azure CLI login
+        run: |
+          az login --service-principal \
+            --username "$ARM_CLIENT_ID" \
+            --password "$ARM_CLIENT_SECRET" \
+            --tenant "$ARM_TENANT_ID" \
+            --output none
+          az account set --subscription "$ARM_SUBSCRIPTION_ID"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -41,60 +52,50 @@ jobs:
 
       - name: Terraform Plan
         working-directory: terraform
-        run: |
-          terraform plan -out=tfplan \
-            -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-            -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
-            -var="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
-            -var="client_secret=${{ secrets.AZURE_CLIENT_SECRET }}" \
-            -var="custom_domain=${{ secrets.AXIOM_DOMAIN }}"
+        run: terraform plan -out=tfplan
 
       - name: Terraform Apply
         working-directory: terraform
         run: terraform apply -auto-approve tfplan
 
-      - name: Capture Terraform outputs
+      - name: Capture Terraform hostname
         id: tf_outputs
         working-directory: terraform
         run: |
-          echo "swa_token=$(terraform output -raw static_web_app_deployment_token)" >> "$GITHUB_OUTPUT"
           echo "static_web_default_host=$(terraform output -raw static_web_default_hostname)" >> "$GITHUB_OUTPUT"
+          echo "static_web_app_name=$(terraform output -raw static_web_app_name)" >> "$GITHUB_OUTPUT"
+          echo "resource_group_name=$(terraform output -raw resource_group_name)" >> "$GITHUB_OUTPUT"
 
-      - name: Upload web artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: axiom-web
-          path: |
-            axiom_web_interface.html
+      - name: Resolve deployment token from provisioned app
+        id: deploy_token
+        run: |
+          token="$(az staticwebapp secrets list \
+            --name '${{ steps.tf_outputs.outputs.static_web_app_name }}' \
+            --resource-group '${{ steps.tf_outputs.outputs.resource_group_name }}' \
+            --query properties.apiKey -o tsv)"
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
 
-    outputs:
-      swa_token: ${{ steps.tf_outputs.outputs.swa_token }}
-      static_web_default_host: ${{ steps.tf_outputs.outputs.static_web_default_host }}
-
-  deploy-web:
-    runs-on: ubuntu-latest
-    needs: provision-infrastructure
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download web artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: axiom-web
+      - name: Stage static web content
+        run: |
+          mkdir -p site
+          cp axiom_web_interface.html site/index.html
 
       - name: Deploy AXIOM static site
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ needs.provision-infrastructure.outputs.swa_token }}
+          azure_static_web_apps_api_token: ${{ steps.deploy_token.outputs.token }}
           action: upload
-          app_location: /
-          app_artifact_location: /
+          app_location: site
+          app_artifact_location: site
           skip_app_build: true
+
+    outputs:
+      static_web_default_host: ${{ steps.tf_outputs.outputs.static_web_default_host }}
 
   post-deploy-summary:
     runs-on: ubuntu-latest
-    needs: [provision-infrastructure, deploy-web]
+    needs: [provision-infrastructure]
     steps:
       - name: Deployment summary
         run: |

@@ -72,24 +72,20 @@ def main() -> int:
     api_status = "dry-run"
 
     if apply_enabled:
-        created = api_call("POST", f"{base_url}/copilots", token, config_payload)
-        agent_id = str(created.get("id") or created.get("copilotId") or agent_id)
-        embed_url = str(created.get("embedUrl") or created.get("webUrl") or embed_url)
+        applied_success = False
+        if agent_id:
+            updated = api_call("PATCH", f"{base_url}/copilots/{agent_id}", token, config_payload)
+            embed_url = str(updated.get("embedUrl") or updated.get("webUrl") or embed_url)
+        else:
+            created = api_call("POST", f"{base_url}/copilots", token, config_payload)
+            agent_id = str(created.get("id") or created.get("copilotId") or agent_id)
+            embed_url = str(created.get("embedUrl") or created.get("webUrl") or embed_url)
 
         if agent_id:
             for soul_file in soul_payload:
                 api_call("POST", f"{base_url}/copilots/{agent_id}/knowledge", token, soul_file)
-            api_call(
-                "PATCH",
-                f"{base_url}/copilots/{agent_id}",
-                token,
-                {
-                    "memory": {"enabled": True, "conversationHistory": True},
-                    "sessionLogging": {"enabled": True, "storeTranscripts": True},
-                    "knowledgeBase": {"syncMode": "realtime"},
-                },
-            )
-        api_status = "applied"
+            applied_success = True
+        api_status = "applied" if applied_success else "apply-incomplete"
 
     output_json = {
         "api_status": api_status,

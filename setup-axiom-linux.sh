@@ -20,7 +20,7 @@ fi
 
 if [ -d .git ]; then
   echo "Pulling latest code..."
-  git pull --ff-only || true
+  git pull --ff-only
 fi
 
 if [ ! -f .env ]; then
@@ -31,7 +31,10 @@ if [ ! -f .env ]; then
   else
     DB_PASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24)"
   fi
-  sed -i.bak "s/^AXIOM_DB_PASSWORD=.*/AXIOM_DB_PASSWORD=${DB_PASSWORD}/" .env && rm -f .env.bak
+  awk -v pw="$DB_PASSWORD" '
+    /^AXIOM_DB_PASSWORD=/ { print "AXIOM_DB_PASSWORD=" pw; next }
+    { print }
+  ' .env > .env.tmp && mv .env.tmp .env
 fi
 
 echo "Pulling images..."
@@ -40,13 +43,21 @@ $COMPOSE_CMD pull
 echo "Starting AXIOM containers..."
 $COMPOSE_CMD up -d axiom-web axiom-db axiom-proxy
 
-LOCAL_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+PROXY_PORT="$(grep -E '^AXIOM_PROXY_PORT=' .env 2>/dev/null | tail -1 | cut -d= -f2)"
+PROXY_PORT="${PROXY_PORT:-8080}"
+LOCAL_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+if [ -z "${LOCAL_IP}" ] && command -v ipconfig >/dev/null 2>&1; then
+  LOCAL_IP="$(ipconfig getifaddr en0 2>/dev/null || true)"
+fi
+if [ -z "${LOCAL_IP}" ] && command -v ip >/dev/null 2>&1; then
+  LOCAL_IP="$(ip route get 1 2>/dev/null | awk '{print $7; exit}')"
+fi
 LOCAL_IP="${LOCAL_IP:-127.0.0.1}"
 EXTERNAL_IP="$(curl -fsS https://api.ipify.org 2>/dev/null || echo unavailable)"
 
 echo ""
 echo "AXIOM is running"
-echo "- Local URL: http://localhost:8080"
+echo "- Local URL: http://localhost:${PROXY_PORT}"
 echo "- Local IP: ${LOCAL_IP}"
 echo "- External IP: ${EXTERNAL_IP}"
 echo "- Stop/remove: ./uninstall-axiom-linux.sh"

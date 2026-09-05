@@ -20,8 +20,6 @@ services:
       POSTGRES_DB: ${AXIOM_DB_NAME:-axiom}
     volumes:
       - axiom-db-data:/var/lib/postgresql/data
-    ports:
-      - "${AXIOM_DB_PORT:-5432}:5432"
 
   axiom-proxy:
     image: nginx:1.27-alpine

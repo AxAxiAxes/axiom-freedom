@@ -33,6 +33,9 @@ docker compose pull
 echo Starting AXIOM containers...
 docker compose up -d axiom-web axiom-db axiom-proxy
 
+set PROXY_PORT=8080
+for /f "tokens=1,2 delims==" %%A in ('findstr /B /I "AXIOM_PROXY_PORT=" .env 2^>nul') do set PROXY_PORT=%%B
+
 for /f "tokens=2 delims=:" %%I in ('ipconfig ^| findstr /R /C:"IPv4 Address"') do (
   set LOCAL_IP=%%I
   goto :localdone
@@ -44,7 +47,7 @@ if "%LOCAL_IP%"=="" set LOCAL_IP=127.0.0.1
 for /f %%I in ('powershell -NoProfile -Command "try {(Invoke-RestMethod https://api.ipify.org).ToString()} catch {'unavailable'}"') do set EXTERNAL_IP=%%I
 
 echo AXIOM is running
-echo - Local URL: http://localhost:8080
+echo - Local URL: http://localhost:%PROXY_PORT%
 echo - Local IP: %LOCAL_IP%
 echo - External IP: %EXTERNAL_IP%
 echo - Stop/remove: uninstall-axiom-windows.bat
@@ -52,7 +55,7 @@ echo - Stop/remove: uninstall-axiom-windows.bat
 set DESKTOP_DIR=%USERPROFILE%\Desktop
 (
   echo [InternetShortcut]
-  echo URL=http://localhost:8080
+  echo URL=http://localhost:%PROXY_PORT%
   echo IconFile=%SystemRoot%\System32\SHELL32.dll
   echo IconIndex=220
 ) > "%DESKTOP_DIR%\AXIOM Local.url"

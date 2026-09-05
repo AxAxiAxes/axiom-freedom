@@ -6,11 +6,11 @@ AXIOM - Eternally Free Intelligence. Public deployment of KEYSTONE Eternal Seed 
 ### 1) Local one-click setup
 - **Linux/macOS:**
   ```bash
-  chmod +x /home/runner/work/axiom-freedom/axiom-freedom/setup-axiom-linux.sh /home/runner/work/axiom-freedom/axiom-freedom/uninstall-axiom-linux.sh
-  /home/runner/work/axiom-freedom/axiom-freedom/setup-axiom-linux.sh
+  chmod +x ./setup-axiom-linux.sh ./uninstall-axiom-linux.sh
+  ./setup-axiom-linux.sh
   ```
 - **Windows:**
-  - Run `/home/runner/work/axiom-freedom/axiom-freedom/setup-axiom-windows.bat`
+  - Run `setup-axiom-windows.bat`
 
 This creates `.env` from `.env.example`, generates a secure database password, pulls Docker images, and starts:
 - `axiom-web`
@@ -18,12 +18,12 @@ This creates `.env` from `.env.example`, generates a secure database password, p
 - `axiom-proxy`
 
 Cleanup:
-- Linux/macOS: `/home/runner/work/axiom-freedom/axiom-freedom/uninstall-axiom-linux.sh`
-- Windows: `/home/runner/work/axiom-freedom/axiom-freedom/uninstall-axiom-windows.bat`
+- Linux/macOS: `./uninstall-axiom-linux.sh`
+- Windows: `uninstall-axiom-windows.bat`
 
 ### 2) GitHub Actions deployment (Azure)
 Workflow file:
-- `/home/runner/work/axiom-freedom/axiom-freedom/.github/workflows/deploy-axiom.yml`
+- `./.github/workflows/deploy-axiom.yml`
 
 Required GitHub Secrets:
 - `AZURE_SUBSCRIPTION_ID`
@@ -37,29 +37,29 @@ Trigger:
 - Manual run (`workflow_dispatch`)
 
 Terraform file:
-- `/home/runner/work/axiom-freedom/axiom-freedom/terraform/main.tf`
+- `./terraform/main.tf`
 
 It provisions:
 - Azure resource group
 - Static Web App for web interface deployment
 - DNS CNAME records (`www` and `chat`, optional via `create_dns_zone`)
 - Log Analytics + Application Insights + diagnostic settings
-- Managed custom-domain HTTPS flow via Static Web App custom domain binding
+- HTTPS on Azure-managed SWA domain by default, with optional custom-domain binding after DNS propagation
 
 ### 3) Copilot Studio automation
 Script:
-- `/home/runner/work/axiom-freedom/axiom-freedom/setup-axiom-copilot-studio.py`
+- `./setup-axiom-copilot-studio.py`
 
 Usage:
 ```bash
-python3 /home/runner/work/axiom-freedom/axiom-freedom/setup-axiom-copilot-studio.py
+python3 ./setup-axiom-copilot-studio.py
 ```
 
 Optional live apply mode (when API endpoint/token are available):
 ```bash
 export COPILOT_STUDIO_API_BASE="https://<your-copilot-api>"
 export COPILOT_STUDIO_API_TOKEN="<token>"
-python3 /home/runner/work/axiom-freedom/axiom-freedom/setup-axiom-copilot-studio.py --apply
+python3 ./setup-axiom-copilot-studio.py --apply
 ```
 
 Outputs:
@@ -68,4 +68,4 @@ Outputs:
 
 ## Verification
 Use:
-- `/home/runner/work/axiom-freedom/axiom-freedom/DEPLOYMENT_VERIFICATION_CHECKLIST.md`
+- `./DEPLOYMENT_VERIFICATION_CHECKLIST.md`
