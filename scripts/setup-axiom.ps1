@@ -55,11 +55,17 @@ try {
   docker compose up -d --build
 
   Write-Host 'Waiting for AXIOM to become healthy...'
-  [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
   $healthy = $false
   for ($i = 0; $i -lt 30; $i++) {
     try {
-      Invoke-WebRequest -Uri 'https://localhost/health' -UseBasicParsing | Out-Null
+      $requestParams = @{
+        Uri = 'https://localhost/health'
+        UseBasicParsing = $true
+      }
+      if ((Get-Command Invoke-WebRequest).Parameters.ContainsKey('SkipCertificateCheck')) {
+        $requestParams.SkipCertificateCheck = $true
+      }
+      Invoke-WebRequest @requestParams | Out-Null
       $healthy = $true
       break
     } catch {

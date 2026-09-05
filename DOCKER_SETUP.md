@@ -3,12 +3,12 @@
 ## Quick start (local)
 
 ```bash
-cp .env.example .env
 ./scripts/setup-axiom.sh
 # Windows PowerShell: ./scripts/setup-axiom.ps1
 ```
 
 Then open: `https://localhost` (health endpoint: `https://localhost/health`).
+The setup scripts auto-create `.env` with a generated DB password when it is missing.
 
 ## Prerequisites
 - Docker Desktop or Docker Engine + Compose v2
@@ -16,7 +16,7 @@ Then open: `https://localhost` (health endpoint: `https://localhost/health`).
 - At least 2GB free disk
 
 ## Environment setup
-1. Copy `.env.example` to `.env`.
+1. Copy `.env.example` to `.env` only if you want to predefine values.
 2. Set secure values for `POSTGRES_PASSWORD`.
 3. Optionally set `DOMAIN` for your hostname.
 

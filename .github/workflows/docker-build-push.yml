@@ -39,7 +39,7 @@ jobs:
       - name: Generate tags
         id: meta
         run: |
-          echo "image=${REGISTRY,,}/${IMAGE_NAMESPACE,,}-axiom-${{ matrix.service }}" >> "$GITHUB_OUTPUT"
+          echo "image=${REGISTRY,,}/${IMAGE_NAMESPACE,,}-${{ matrix.service }}" >> "$GITHUB_OUTPUT"
           echo "sha_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push image
