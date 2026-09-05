@@ -18,6 +18,7 @@ jobs:
         run: |
           cp .env.example .env
           sed -i 's/replace-with-strong-password/test-password-123/' .env
+          sed -i 's#^DATABASE_URL=.*#DATABASE_URL=postgresql://axiom-db:5432/axiom?user=axiom\\&sslmode=disable#' .env
 
       - name: Create TLS certs
         run: |
@@ -47,7 +48,12 @@ jobs:
           docker compose exec -T axiom-db psql -U axiom -d axiom -c "CREATE TABLE IF NOT EXISTS compose_persistence(id serial primary key, marker text);"
           docker compose exec -T axiom-db psql -U axiom -d axiom -c "INSERT INTO compose_persistence(marker) VALUES ('persist-ok');"
           docker compose restart axiom-db
-          sleep 10
+          for i in {1..30}; do
+            if [ "$(docker inspect -f '{{.State.Health.Status}}' $(docker compose ps -q axiom-db))" = "healthy" ]; then
+              break
+            fi
+            sleep 2
+          done
           docker compose exec -T axiom-db psql -U axiom -d axiom -tAc "SELECT COUNT(*) FROM compose_persistence WHERE marker='persist-ok';" | grep -q 1
 
       - name: Print service status

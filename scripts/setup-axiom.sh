@@ -26,7 +26,7 @@ AXIOM_LOG_LEVEL=info
 POSTGRES_USER=axiom
 POSTGRES_PASSWORD=$DB_PASSWORD
 POSTGRES_DB=axiom
-DATABASE_URL=postgresql://axiom-db:5432/axiom
+DATABASE_URL=postgresql://axiom-db:5432/axiom?user=axiom&sslmode=disable
 AXIOM_INTERNAL_URL=http://axiom-web:8080
 DOMAIN=localhost
 SSL_CERT_PATH=/etc/nginx/ssl/cert.pem

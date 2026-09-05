@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: axiom-web
     env_file:
       - .env
     restart: unless-stopped
@@ -27,7 +26,6 @@ services:
 
   axiom-db:
     image: postgres:15-alpine
-    container_name: axiom-db
     env_file:
       - .env
     environment:
@@ -57,7 +55,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.proxy
-    container_name: axiom-proxy
     env_file:
       - .env
     depends_on:

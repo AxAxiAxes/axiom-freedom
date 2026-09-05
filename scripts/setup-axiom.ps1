@@ -33,7 +33,7 @@ AXIOM_LOG_LEVEL=info
 POSTGRES_USER=axiom
 POSTGRES_PASSWORD=$dbPassword
 POSTGRES_DB=axiom
-DATABASE_URL=postgresql://axiom-db:5432/axiom
+DATABASE_URL=postgresql://axiom-db:5432/axiom?user=axiom&sslmode=disable
 AXIOM_INTERNAL_URL=http://axiom-web:8080
 DOMAIN=localhost
 SSL_CERT_PATH=/etc/nginx/ssl/cert.pem
@@ -46,7 +46,8 @@ SSL_KEY_PATH=/etc/nginx/ssl/key.pem
 $certPath = Join-Path $RootDir 'ssl/cert.pem'
 $keyPath = Join-Path $RootDir 'ssl/key.pem'
 if ((-not (Test-Path $certPath)) -or (-not (Test-Path $keyPath))) {
-  docker run --rm -v "${RootDir}/ssl:/ssl" alpine/openssl req -x509 -newkey rsa:2048 -sha256 -days 365 -nodes -keyout /ssl/key.pem -out /ssl/cert.pem -subj '/CN=localhost' | Out-Null
+  $sslMount = (Join-Path $RootDir 'ssl').Replace('\', '/')
+  docker run --rm -v "${sslMount}:/ssl" alpine/openssl req -x509 -newkey rsa:2048 -sha256 -days 365 -nodes -keyout /ssl/key.pem -out /ssl/cert.pem -subj '/CN=localhost' | Out-Null
   Write-Host 'Generated local self-signed TLS certificate in ssl/.'
 }
 
