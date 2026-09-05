@@ -79,7 +79,12 @@ try {
     throw 'AXIOM health check did not pass in time.'
   }
 
-  $localIp = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object {$_.IPAddress -notlike '127.*'} | Select-Object -First 1 -ExpandProperty IPAddress)
+  $localIp = 'unavailable'
+  if ($IsWindows -and (Get-Command Get-NetIPAddress -ErrorAction SilentlyContinue)) {
+    $localIp = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object {$_.IPAddress -notlike '127.*'} | Select-Object -First 1 -ExpandProperty IPAddress)
+  } elseif (Get-Command hostname -ErrorAction SilentlyContinue) {
+    $localIp = (hostname)
+  }
   $externalIp = try { (Invoke-RestMethod -Uri 'https://api.ipify.org' -TimeoutSec 5) } catch { 'unavailable' }
 
   Write-Host 'AXIOM is running.'

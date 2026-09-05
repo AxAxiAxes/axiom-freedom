@@ -63,4 +63,6 @@ jobs:
 
       - name: Tear down
         if: always()
-        run: docker compose down -v
+        run: |
+          docker compose down -v
+          rm -rf postgres_data logs ssl .env

@@ -60,8 +60,6 @@ services:
     depends_on:
       axiom-web:
         condition: service_healthy
-      axiom-db:
-        condition: service_healthy
     restart: unless-stopped
     ports:
       - "80:80"

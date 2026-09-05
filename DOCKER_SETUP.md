@@ -44,7 +44,7 @@ docker compose down
 ## Troubleshooting
 - Check health: `curl -ks https://localhost/health`
 - Check cert files exist: `ssl/cert.pem`, `ssl/key.pem`
-- Rebuild stack: `docker compose down -v && docker compose up -d --build`
+- Rebuild stack: `docker compose down -v && rm -rf postgres_data logs ssl && docker compose up -d --build`
 
 ## Production notes
 - Replace self-signed certs in `ssl/` with real TLS cert/key.
