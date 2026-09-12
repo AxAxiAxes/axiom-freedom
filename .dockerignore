@@ -1,0 +1,9 @@
+.git
+.github
+.env
+.env.*
+postgres_data
+logs
+ssl
+node_modules
+npm-debug.log

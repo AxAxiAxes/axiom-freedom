@@ -1,0 +1,68 @@
+name: Docker Compose Integration Test
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compose-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create test .env
+        run: |
+          cp .env.example .env
+          sed -i 's/replace-with-strong-password/test-password-123/' .env
+          DB_URL_PREFIX='postgresql://axiom:'
+          sed -i "s#^DATABASE_URL=.*#DATABASE_URL=${DB_URL_PREFIX}test-password-123@axiom-db:5432/axiom?sslmode=disable#" .env
+
+      - name: Create TLS certs
+        run: |
+          mkdir -p ssl
+          openssl req -x509 -newkey rsa:2048 -sha256 -days 365 -nodes \
+            -keyout ssl/key.pem -out ssl/cert.pem -subj '/CN=localhost'
+
+      - name: Start stack
+        run: docker compose up -d --build
+
+      - name: Wait for health
+        run: |
+          for i in {1..40}; do
+            if curl -ksf https://localhost/health >/dev/null; then
+              exit 0
+            fi
+            sleep 3
+          done
+          docker compose logs
+          exit 1
+
+      - name: Test service communication
+        run: docker compose exec -T axiom-proxy wget -qO- http://axiom-web:8080/health
+
+      - name: Verify data persistence
+        run: |
+          docker compose exec -T axiom-db psql -U axiom -d axiom -c "CREATE TABLE IF NOT EXISTS compose_persistence(id serial primary key, marker text);"
+          docker compose exec -T axiom-db psql -U axiom -d axiom -c "INSERT INTO compose_persistence(marker) VALUES ('persist-ok');"
+          docker compose restart axiom-db
+          for i in {1..30}; do
+            if [ "$(docker inspect -f '{{.State.Health.Status}}' $(docker compose ps -q axiom-db))" = "healthy" ]; then
+              break
+            fi
+            sleep 2
+          done
+          docker compose exec -T axiom-db psql -U axiom -d axiom -tAc "SELECT COUNT(*) FROM compose_persistence WHERE marker='persist-ok';" | grep -q 1
+
+      - name: Print service status
+        if: always()
+        run: docker compose ps
+
+      - name: Tear down
+        if: always()
+        run: |
+          docker compose down -v
+          rm -rf postgres_data logs ssl .env

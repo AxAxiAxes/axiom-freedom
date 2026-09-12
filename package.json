@@ -1,0 +1,9 @@
+{
+  "name": "axiom-freedom",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AXIOM Docker web service",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
