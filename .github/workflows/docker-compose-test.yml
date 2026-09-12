@@ -65,4 +65,4 @@ jobs:
         if: always()
         run: |
           docker compose down -v
-          rm -rf postgres_data logs ssl .env
+          sudo rm -rf postgres_data logs ssl .env
